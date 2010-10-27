@@ -486,5 +486,3 @@ class FileUploadComponent extends Object{
     return false;
   }
 }
-
-?>
