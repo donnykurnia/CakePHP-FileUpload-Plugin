@@ -22,7 +22,7 @@
   *
   * @note: Please review the plugins/file_upload/config/file_upload_settings.php file for details on each setting.
   * @version: since 6.1.0
-  * @author: Nick Baker
+  * @author: Nick Baker, modified by Donny Kurnia
   * @link: http://www.webtechnick.com
   */
 App::import('Vendor', 'FileUpload.uploader');
@@ -59,18 +59,59 @@ class FileUploadBehavior extends ModelBehavior {
     * beforeSave if a file is found, upload it, and then save the filename according to the settings
     *
     */
-  function beforeSave(&$Model){
+  function beforeSave(&$Model, $options){
+    if ( $Model->id ) {
+      //backup submitted data
+      $submittedData = $Model->data;
+      //get current file in database table
+      $data = $Model->read(null, $Model->id);
+      if ( $data AND $data[$Model->alias][$this->options[$Model->alias]['fields']['name']] != '' ) {
+        //save current file to be deleted later
+        $Model->currentFiles[] = $data[$Model->alias][$this->options[$Model->alias]['fields']['name']];
+      }
+      //restore submitted data
+      $Model->data = $submittedData;
+    }
+    return $Model->beforeSave();
+  }
+
+  /**
+    * beforeSave if a file is found, upload it, and then save the filename according to the settings
+    *
+    */
+  function afterSave(&$Model, $created){
     if(isset($Model->data[$Model->alias][$this->options[$Model->alias]['fileVar']])){
       $file = $Model->data[$Model->alias][$this->options[$Model->alias]['fileVar']];
       $this->Uploader[$Model->alias]->file = $file;
       
       if($this->Uploader[$Model->alias]->hasUpload()){
         $fileName = $this->Uploader[$Model->alias]->processFile();
-        if($fileName){
-          $Model->data[$Model->alias][$this->options[$Model->alias]['fields']['name']] = $fileName;
-          $Model->data[$Model->alias][$this->options[$Model->alias]['fields']['size']] = $file['size'];
-          $Model->data[$Model->alias][$this->options[$Model->alias]['fields']['type']] = $file['type'];
-        } else {
+        $id = $Model->{$Model->primaryKey};
+        if ( $fileName AND $id > 0 ) {
+          //update data in database
+          $updateM[$Model->alias] = array($Model->primaryKey => $id);
+          $updateM[$Model->alias][$this->options[$Model->alias]['fields']['name']] = $fileName;
+          $updateM[$Model->alias][$this->options[$Model->alias]['fields']['real_name']] = $file['name'];
+          $updateM[$Model->alias][$this->options[$Model->alias]['fields']['size']] = $file['size'];
+          $updateM[$Model->alias][$this->options[$Model->alias]['fields']['type']] = $file['type'];
+          $result = $Model->save($updateM, array('callbacks' => false));
+          //cleanup
+          if ( $result ) {
+            //delete current files
+            if ( count($Model->currentFiles) > 0 ) {
+              foreach ( $Model->currentFiles as $currentFile ) {
+                $this->Uploader[$Model->alias]->removeFile($currentFile);
+              }
+            }
+          }
+          //update failed
+          else {
+            //delete uploaded file
+            $this->Uploader[$Model->alias]->removeFile($fileName);
+          }
+          return $result;
+        }
+        else {
           return false; // we couldn't save the file, return false
         }
         unset($Model->data[$Model->alias][$this->options[$Model->alias]['fileVar']]);
@@ -79,7 +120,7 @@ class FileUploadBehavior extends ModelBehavior {
         unset($Model->data[$Model->alias]);
       }
     }
-    return $Model->beforeSave();
+    return $Model->afterSave($created);
   }
   
   /**
@@ -116,10 +157,24 @@ class FileUploadBehavior extends ModelBehavior {
   function beforeDelete(&$Model, $cascade){
     $Model->recursive = -1;
     $data = $Model->read();
-    
-    $this->Uploader[$Model->alias]->removeFile($data[$Model->alias][$this->options[$Model->alias]['fields']['name']]);
+    if ( $data AND $data[$Model->alias][$this->options[$Model->alias]['fields']['name']] != '' ) {
+      //save current file to be deleted later
+      $Model->currentFiles[] = $data[$Model->alias][$this->options[$Model->alias]['fields']['name']];
+    }
     return $Model->beforeDelete($cascade);
   }
-  
+    
+  /**
+    * Automatically remove the uploaded file.
+    */
+  function afterDelete(&$Model){
+    //delete current files
+    if ( count($Model->currentFiles) > 0 ) {
+      foreach ( $Model->currentFiles as $currentFile ) {
+        $this->Uploader[$Model->alias]->removeFile($currentFile);
+      }
+    }
+    return $Model->afterDelete();
+  }
+
 }
-?>
