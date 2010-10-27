@@ -36,4 +36,3 @@ class FileUploadHelperTest extends CakeTestCase {
     unset($this->FileUpload);
   }
 }
-?>

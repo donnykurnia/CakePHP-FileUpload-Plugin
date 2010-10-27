@@ -145,4 +145,3 @@ class UploaderTest extends CakeTestCase {
     unset($this->Uploader);
   }
 }
-?>
