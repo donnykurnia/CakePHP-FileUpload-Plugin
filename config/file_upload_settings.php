@@ -111,7 +111,7 @@ class FileUploadSettings {
       * fields are the fields relating to the database columns
       * @var array of fields related to database columns.
       */
-    'fields' => array('name'=>'name','type'=>'type','size'=>'size'),
+    'fields' => array('name'=>'name','real_name'=>'real_name','type'=>'type','size'=>'size'),
     
     /**
       * Component Setting Only.
@@ -187,8 +187,9 @@ class FileUploadSettings {
       *  'fileNameFunction' => 'md5'
       *  'fileNameFunction' => 'crc32'
       */
-    'fileNameFunction' => false
+    'fileNameFunction' => false,
+
+    'overwrite' => true
   );
 
 }
-?>
