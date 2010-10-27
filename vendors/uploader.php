@@ -2,7 +2,7 @@
 /**
   * Uploader class handles a single file to be uploaded to the file system
   * 
-  * @author: Nick Baker
+  * @author: Nick Baker, modified by Donny Kurnia
   * @version: since 6.0.0
   * @link: http://www.webtechnick.com 
   */
@@ -75,15 +75,15 @@ class Uploader {
       if($this->options['fileModel']){
         $Model = ClassRegistry::init($this->options['fileModel']);
         if(method_exists($Model, $this->options['fileNameFunction'])){
-          $fileName = $Model->{$this->options['fileNameFunction']}($fileName);
+          $fileName = $Model->{$this->options['fileNameFunction']}($fileName) . $this->_ext();
         }
         elseif(function_exists($this->options['fileNameFunction'])){
-          $fileName = call_user_func($this->options['fileNameFunction'], $fileName);
+          $fileName = call_user_func($this->options['fileNameFunction'], $fileName) . $this->_ext();
         }
       }
       else {
         if(function_exists($this->options['fileNameFunction'])){
-          $fileName = call_user_func($this->options['fileNameFunction'], $fileName);
+          $fileName = call_user_func($this->options['fileNameFunction'], $fileName) . $this->_ext();
         }
       }
       
@@ -344,4 +344,3 @@ class Uploader {
   }
 
 }
-?>
