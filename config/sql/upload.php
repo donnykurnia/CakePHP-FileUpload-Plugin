@@ -20,4 +20,3 @@ class uploadSchema extends CakeSchema {
 	);
 
 }
-?>
