@@ -548,4 +548,3 @@ class FileUploadHelper extends AppHelper{
 			@imagedestroy($newimg);
 		}
 	}
-?>
